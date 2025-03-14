@@ -6,9 +6,10 @@ services:
       POSTGRES_USER: keycloak_user
       POSTGRES_PASSWORD: keycloak_password
     volumes:
-      - ./postgres-keycloak-data:/var/lib/postgresql/data
+      - keycloak_postgres_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+
   keycloak:
     image: quay.io/keycloak/keycloak:21.1
     environment:
@@ -18,7 +19,7 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak_db
       KC_DB_USERNAME: keycloak_user
       KC_DB_PASSWORD: keycloak_password
-    command: 
+    command:
       - start-dev
       - --import-realm
     volumes:
@@ -52,5 +53,10 @@ services:
       - "8000:8000"
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - SERVER_PORT=8000
+      - SERVER_ADDRESS=0.0.0.0
     depends_on:
       - keycloak
+
+volumes:
+  keycloak_postgres_data:
