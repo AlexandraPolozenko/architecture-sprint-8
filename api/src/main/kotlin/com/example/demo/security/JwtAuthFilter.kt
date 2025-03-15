@@ -22,7 +22,11 @@ class JwtAuthFilter(
                 SecurityContextHolder.getContext().authentication = authentication
             }
         }
+        println("Auth ${SecurityContextHolder.getContext().authentication}")
 
         chain.doFilter(request, response)
+
+        println("Auth1 ${SecurityContextHolder.getContext().authentication}")
+
     }
 }

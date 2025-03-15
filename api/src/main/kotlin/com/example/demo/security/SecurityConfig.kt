@@ -27,7 +27,6 @@ open class SecurityConfig(
                 .authorizeHttpRequests { auth ->
                     auth
                             .requestMatchers(HttpMethod.GET, "/reports").authenticated()
-                            .anyRequest().permitAll()
                 }
                 .addFilterBefore(JwtAuthFilter(jwtService), UsernamePasswordAuthenticationFilter::class.java)
                 .build()

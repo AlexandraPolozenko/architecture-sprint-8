@@ -15,6 +15,12 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
+
 
 @Service
 class JwtService(
@@ -30,7 +36,7 @@ class JwtService(
     fun fetchKeycloakPublicKeys() {
         try {
             val url = "$keycloakUrl/realms/$realmName/protocol/openid-connect/certs"
-            logger.info("Fetching JWKS from: $url")
+            logger.error("Fetching JWKS from: $url")
 
             val request = Request.Builder().url(url).build()
             val response = httpClient.newCall(request).execute()
@@ -42,9 +48,10 @@ class JwtService(
             val jwks = JWKSet.parse(response.body?.string() ?: "")
             jwks.keys.forEach { key ->
                 publicKeys[key.keyID] = key
+                logger.error(publicKeys.toString())
             }
 
-            logger.info("Loaded ${publicKeys.size} signing keys.")
+            logger.error("Loaded ${publicKeys.size} signing keys.")
         } catch (e: Exception) {
             logger.error("Error fetching Keycloak public keys", e)
         }
@@ -52,6 +59,7 @@ class JwtService(
 
     fun validateToken(token: String): UsernamePasswordAuthenticationToken? {
         try {
+            fetchKeycloakPublicKeys()
             val signedJWT = SignedJWT.parse(token)
             val keyId = signedJWT.header.keyID
             val publicKey = publicKeys[keyId]?.toRSAKey()?.toRSAPublicKey()
@@ -70,12 +78,16 @@ class JwtService(
             val claims = signedJWT.jwtClaimsSet
             val audience = claims.audience ?: listOf()
 
-            val roles = claims.getJSONObjectClaim("realm_access")?.get("roles") as? List<String> ?: listOf()
+            val roles = claims.getJSONObjectClaim("realm_access")?.get("roles").toString()// as? List<String> ?: listOf()
+            logger.error("roles $roles")
 
             if (!roles.contains(requiredRole)) {
                 logger.warn("User lacks required role: $requiredRole")
+//                throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "User lacks required role", IllegalArgumentException())
                 return null
             }
+
+            logger.error("role checked correctly")
 
             return UsernamePasswordAuthenticationToken("user", null, listOf(SimpleGrantedAuthority("ROLE_USER")))
         } catch (e: Exception) {
